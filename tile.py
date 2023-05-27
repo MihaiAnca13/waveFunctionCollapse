@@ -7,6 +7,7 @@ class Tile:
     def __init__(self, base_img):
         self.img = base_img
         self.adjacency = None
+        self.weight = 0
         self.compute_adjacency()
 
     def compute_adjacency(self):
@@ -27,6 +28,11 @@ class Tile:
             self.img[positions[1], 0],
             self.img[positions[0], 0]
         ], dtype=bool)
+
+        if np.all(self.adjacency == 1):
+            self.weight = 1000
+        else:
+            self.weight = 1
 
     def rotate_90(self):
         return Tile(cv2.rotate(self.img, cv2.ROTATE_90_CLOCKWISE))

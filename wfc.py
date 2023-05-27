@@ -86,7 +86,7 @@ class WaveFunctionCollapse:
             for tile in self.grid[i - 1, j].tiles:
                 if tile.compatible_S(self.grid[i, j].tile):
                     compatible_tiles.append(tile)
-            self.grid[i - 1, j].tiles = compatible_tiles
+            self.grid[i - 1, j].update_tiles(compatible_tiles)
             if len(compatible_tiles) == 1:
                 self.grid[i - 1, j].collapse()
                 self.propagate_constraints(i - 1, j)
@@ -97,7 +97,7 @@ class WaveFunctionCollapse:
             for tile in self.grid[i, j + 1].tiles:
                 if tile.compatible_W(self.grid[i, j].tile):
                     compatible_tiles.append(tile)
-            self.grid[i, j + 1].tiles = compatible_tiles
+            self.grid[i, j + 1].update_tiles(compatible_tiles)
             if len(compatible_tiles) == 1:
                 self.grid[i, j + 1].collapse()
                 self.propagate_constraints(i, j + 1)
@@ -108,7 +108,7 @@ class WaveFunctionCollapse:
             for tile in self.grid[i + 1, j].tiles:
                 if tile.compatible_N(self.grid[i, j].tile):
                     compatible_tiles.append(tile)
-            self.grid[i + 1, j].tiles = compatible_tiles
+            self.grid[i + 1, j].update_tiles(compatible_tiles)
             if len(compatible_tiles) == 1:
                 self.grid[i + 1, j].collapse()
                 self.propagate_constraints(i + 1, j)
@@ -119,7 +119,7 @@ class WaveFunctionCollapse:
             for tile in self.grid[i, j - 1].tiles:
                 if tile.compatible_E(self.grid[i, j].tile):
                     compatible_tiles.append(tile)
-            self.grid[i, j - 1].tiles = compatible_tiles
+            self.grid[i, j - 1].update_tiles(compatible_tiles)
             if len(compatible_tiles) == 1:
                 self.grid[i, j - 1].collapse()
                 self.propagate_constraints(i, j - 1)
@@ -137,7 +137,7 @@ class WaveFunctionCollapse:
                 if self.grid[i, j].collapsed:
                     grid[i * self.image_size:(i + 1) * self.image_size, j * self.image_size:(j + 1) * self.image_size] = self.grid[i, j].tile.img
                 else:
-                    grid[i * self.image_size:(i + 1) * self.image_size, j * self.image_size:(j + 1) * self.image_size] = 255
+                    grid[i * self.image_size:(i + 1) * self.image_size, j * self.image_size:(j + 1) * self.image_size] = 125
         cv2.imshow('grid', grid)
         cv2.waitKey(1)
 
