@@ -42,6 +42,9 @@ class Tile:
         else:
             self.weight = 1
 
+    def invert(self):
+        return Tile(cv2.bitwise_not(self.img))
+
     def rotate_90(self):
         return Tile(cv2.rotate(self.img, cv2.ROTATE_90_CLOCKWISE))
 
@@ -66,6 +69,14 @@ class Tile:
             self.flip_vertical().rotate_90(),
             self.flip_vertical().rotate_90().rotate_90(),
             self.flip_vertical().rotate_90().rotate_90().rotate_90(),
+            self.invert(),
+            self.invert().rotate_90(),
+            self.invert().rotate_90().rotate_90(),
+            self.invert().rotate_90().rotate_90().rotate_90(),
+            self.invert().flip_vertical(),
+            self.invert().flip_vertical().rotate_90(),
+            self.invert().flip_vertical().rotate_90().rotate_90(),
+            self.invert().flip_vertical().rotate_90().rotate_90().rotate_90(),
         ]
 
     def __eq__(self, other):
