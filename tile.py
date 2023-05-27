@@ -10,6 +10,14 @@ class Tile:
         self.weight = 0
         self.compute_adjacency()
 
+    @property
+    def is_land(self):
+        return np.all(self.adjacency == 1)
+
+    @property
+    def is_empty(self):
+        return np.all(self.adjacency == 0)
+
     def compute_adjacency(self):
         self.adjacency = []
         size = self.img.shape[0]
@@ -29,7 +37,7 @@ class Tile:
             self.img[positions[0], 0]
         ], dtype=bool)
 
-        if np.all(self.adjacency == 1):
+        if self.is_land:
             self.weight = 1000
         else:
             self.weight = 1

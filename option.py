@@ -16,9 +16,9 @@ class Option:
         self.LAND = -1
         self.EMPTY = -1
         for i, tile in enumerate(self.tiles):
-            if np.all(tile.adjacency == 1):
+            if tile.is_land:
                 self.LAND = i
-            elif np.all(tile.adjacency == 0):
+            elif tile.is_empty:
                 self.EMPTY = i
 
     @property
