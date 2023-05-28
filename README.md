@@ -1,9 +1,10 @@
 # Simple Wave Function Collapse for island generation
 
 ## TODO
+- figure out why rivers are only horizontal or vertical
 - remove holes in island
-- backtracking
 - parallelize the generation
+- improve backtracking memory req and speed?
 - other overall shapes?
 
 ## Observation from looking at this [island](https://i.redd.it/uw9w6jiwjx231.png)
@@ -16,3 +17,9 @@
 Holes in the island would be nonexistent if using a NxN pattern:
 - downside is it requires an already built island
 - upside is you could generate more than circular shapes
+
+## Backtracking
+- using a stack
+- when a random choice needs to be made, save all other tile options to the stack
+- when a dead end is reached, pop the stack and try the next option
+- an item in the stack contains: the grid, the tile to be collapsed, the possible tiles for that Option

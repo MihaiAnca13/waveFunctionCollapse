@@ -4,9 +4,9 @@ import itertools
 from wfc import WaveFunctionCollapse
 from option import Option
 
-GRID_W = 50
-GRID_H = 50
-TILES_FROM_EDGE = 3
+GRID_W = 25
+GRID_H = 25
+TILES_FROM_EDGE = 1
 LAND_SIZE = 3
 IMG_SIZE = 720 // GRID_W
 

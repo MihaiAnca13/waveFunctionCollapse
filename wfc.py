@@ -3,7 +3,8 @@ import cv2
 import numpy as np
 import os
 from option import Option
-import itertools
+from collections import deque
+from copy import deepcopy
 
 
 class WaveFunctionCollapse:
@@ -14,6 +15,7 @@ class WaveFunctionCollapse:
         self.images = []
         self.tiles = []
         self.grid = np.zeros((h, w), dtype=object)
+        self.backtracking_stack = deque(maxlen=h * w * 10)
 
     def load_images(self, load_path, resize=True):
         _, _, files = next(os.walk(load_path))
@@ -70,13 +72,16 @@ class WaveFunctionCollapse:
         for i in range(self.h):
             for j in range(self.w):
                 if not self.grid[i, j].collapsed:
-                    assert self.grid[i, j].entropy > 0  # TODO: handle the case where entropy is 0 (backtrack)
+                    if self.grid[i, j].entropy == 0:
+                        # backtrack
+                        print(f"Backtracking with {len(self.backtracking_stack)} items on stack")
+                        return None, None
                     if self.grid[i, j].entropy < min_entropy:
                         min_entropy = self.grid[i, j].entropy
                         min_tiles = [(i, j)]
                     elif self.grid[i, j].entropy == min_entropy:
                         min_tiles.append((i, j))
-        return min_tiles, min_entropy
+        return np.array(min_tiles), min_entropy
 
     def propagate_constraints(self, i, j):
         assert self.grid[i, j].collapsed
@@ -125,35 +130,42 @@ class WaveFunctionCollapse:
                 self.propagate_constraints(i, j - 1)
 
     def display_grid(self):
-        # positions = itertools.product(range(GRID_W), range(GRID_H))
-        # for (x_i, y_i) in positions:
-        #     x = x_i * img_w
-        #     y = y_i * img_h
-        #     imgmatrix[y:y + img_h, x:x + img_w] = tiles[3].img
-
-        grid = np.zeros((self.h * self.image_size, self.w * self.image_size), np.uint8)
+        # display grid of tile with 1px gray (70) border between tiles
+        grid = np.zeros((self.h * self.image_size + self.h - 1, self.w * self.image_size + self.w - 1),
+                        dtype=np.uint8) + 70
         for i in range(self.h):
             for j in range(self.w):
                 if self.grid[i, j].collapsed:
-                    grid[i * self.image_size:(i + 1) * self.image_size, j * self.image_size:(j + 1) * self.image_size] = self.grid[i, j].tile.img
+                    grid[i * self.image_size + i:(i + 1) * self.image_size + i,
+                    j * self.image_size + j:(j + 1) * self.image_size + j] = self.grid[i, j].tile.img
                 else:
-                    grid[i * self.image_size:(i + 1) * self.image_size, j * self.image_size:(j + 1) * self.image_size] = 125
+                    grid[i * self.image_size + i:(i + 1) * self.image_size + i,
+                    j * self.image_size + j:(j + 1) * self.image_size + j] = 125
         cv2.imshow('grid', grid)
         cv2.waitKey(1)
 
     def run(self):
+        i, j = None, None
         while True:
             min_tiles, min_entropy = self.get_min_entropy_tiles()
-            if len(min_tiles) == 0:
+            if min_tiles is None:
+                # backtracking
+                new_grid, i, j = self.backtracking_stack.pop()
+                self.grid = new_grid
+            elif len(min_tiles) == 0:
                 print('No tiles left to collapse')
                 break
             else:
-                # pick a random tile from the list
-                idx = np.random.choice(len(min_tiles))
-                i, j = min_tiles[idx]
-                self.grid[i, j].collapse()
-                # propagate constraints
-                self.propagate_constraints(i, j)
+                np.random.shuffle(min_tiles)
+                for (i, j) in min_tiles[:-1]:
+                    self.backtracking_stack.append((deepcopy(self.grid), i, j))
+
+                i, j = min_tiles[-1]
+
+            # collapse a tile
+            self.grid[i, j].collapse()
+            # propagate constraints
+            self.propagate_constraints(i, j)
 
             # display progress
             self.display_grid()
