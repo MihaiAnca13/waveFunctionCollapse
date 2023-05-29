@@ -1,7 +1,8 @@
 # Simple Wave Function Collapse for island generation
 
 ## TODO
-- figure out why rivers are only horizontal or vertical
+- tiles with 3 corners (Y shape) + 2 corners same side to connect these
+- increase weight of tiles with 3 sides of land
 - remove holes in island
 - parallelize the generation
 - improve backtracking memory req and speed?
@@ -23,3 +24,10 @@ Holes in the island would be nonexistent if using a NxN pattern:
 - when a random choice needs to be made, save all other tile options to the stack
 - when a dead end is reached, pop the stack and try the next option
 - an item in the stack contains: the grid, the tile to be collapsed, the possible tiles for that Option
+
+## Parallelization
+- the backtracking stack is populated only after the workers have made their choices
+- workers are split into 2 stages: tile selection and tile collapsing
+- a minimum distance between tiles chosen by different workers is enforced
+- backtracking still works because workers can't go into unrecoverable states thanks to the distance constrain
+- optional: worker can be killed when choosing a tile that's too close indicating 

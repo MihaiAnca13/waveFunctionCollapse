@@ -7,6 +7,7 @@ class Option:
         self.collapsed = False
         self.EMPTY = -1
         self.LAND = -1
+        self.entropy = 0
 
         self.update_tiles(tiles)
 
@@ -21,9 +22,7 @@ class Option:
             elif tile.is_empty:
                 self.EMPTY = i
 
-    @property
-    def entropy(self):
-        return len(self.tiles)
+        self.entropy = len(self.tiles)
 
     @property
     def tile(self):
@@ -34,6 +33,7 @@ class Option:
 
     def collapse(self, idx=None):
         self.collapsed = True
+        self.entropy = 0
         if idx is None:
             # pick a random tile from the list based on the weights
             weights = [tile.weight for tile in self.tiles]

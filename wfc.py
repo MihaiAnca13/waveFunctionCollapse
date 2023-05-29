@@ -5,6 +5,7 @@ import os
 from option import Option
 from collections import deque
 from copy import deepcopy
+import hashlib
 
 
 class WaveFunctionCollapse:
@@ -65,6 +66,12 @@ class WaveFunctionCollapse:
         for i in range(self.h):
             for j in range(self.w):
                 self.grid[i, j] = Option(self.tiles)
+
+    def hash_grid(self, grid=None):
+        if grid is None:
+            grid = self.grid
+        arr_str = str(grid.flatten()).encode('utf-8')
+        return hashlib.sha256(arr_str).hexdigest()
 
     def get_min_entropy_tiles(self):
         min_entropy = 1000
