@@ -1,12 +1,7 @@
 # Simple Wave Function Collapse for island generation
 
 ## TODO
-- tiles with 3 corners (Y shape) + 2 corners same side to connect these
-- increase weight of tiles with 3 sides of land
-- remove holes in island
 - parallelize the generation
-- improve backtracking memory req and speed?
-- other overall shapes?
 
 ## Observation from looking at this [island](https://i.redd.it/uw9w6jiwjx231.png)
 
@@ -30,4 +25,7 @@ Holes in the island would be nonexistent if using a NxN pattern:
 - workers are split into 2 stages: tile selection and tile collapsing
 - a minimum distance between tiles chosen by different workers is enforced
 - backtracking still works because workers can't go into unrecoverable states thanks to the distance constrain
-- optional: worker can be killed when choosing a tile that's too close indicating 
+- optional: worker can be killed when choosing a tile that's too close indicating the size of not collapsed tiles is low
+
+## Other possible tiles
+- tiles with 3 corners (Y shape) + 2 corners same side to connect these

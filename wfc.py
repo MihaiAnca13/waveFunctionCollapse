@@ -136,20 +136,51 @@ class WaveFunctionCollapse:
                 self.grid[i, j - 1].collapse()
                 self.propagate_constraints(i, j - 1)
 
-    def display_grid(self):
-        # display grid of tile with 1px gray (70) border between tiles
-        grid = np.zeros((self.h * self.image_size + self.h - 1, self.w * self.image_size + self.w - 1),
-                        dtype=np.uint8) + 70
+    def create_image(self, grid_lines=False):
+        if grid_lines:
+            image = np.zeros((self.h * self.image_size + self.h - 1, self.w * self.image_size + self.w - 1), dtype=np.uint8) + 70
+        else:
+            image = np.zeros((self.h * self.image_size, self.w * self.image_size), dtype=np.uint8) + 70
+
         for i in range(self.h):
             for j in range(self.w):
                 if self.grid[i, j].collapsed:
-                    grid[i * self.image_size + i:(i + 1) * self.image_size + i,
-                    j * self.image_size + j:(j + 1) * self.image_size + j] = self.grid[i, j].tile.img
+                    if grid_lines:
+                        image[i * self.image_size + i:(i + 1) * self.image_size + i, j * self.image_size + j:(j + 1) * self.image_size + j] = self.grid[i, j].tile.img
+                    else:
+                        image[i * self.image_size:(i + 1) * self.image_size, j * self.image_size:(j + 1) * self.image_size] = self.grid[i, j].tile.img
                 else:
-                    grid[i * self.image_size + i:(i + 1) * self.image_size + i,
-                    j * self.image_size + j:(j + 1) * self.image_size + j] = 125
-        cv2.imshow('grid', grid)
+                    if grid_lines:
+                        image[i * self.image_size + i:(i + 1) * self.image_size + i, j * self.image_size + j:(j + 1) * self.image_size + j] = 125
+                    else:
+                        image[i * self.image_size:(i + 1) * self.image_size, j * self.image_size:(j + 1) * self.image_size] = 125
+        return image
+
+    def display_grid(self, image=None):
+        if image is None:
+            image = self.create_image(grid_lines=True)
+        cv2.imshow('grid', image)
         cv2.waitKey(1)
+
+    def remove_holes(self, radius_in_tiles):
+        image = self.create_image()
+        image = np.where(image > 200, 255, 0).astype(np.uint8)
+
+        image_w = image.shape[1]
+        image_h = image.shape[0]
+
+        count = 1
+        # remove holes in the grid
+        for i in range(image_h):
+            for j in range(image_w):
+                if image[i, j] == 0:
+                    cv2.floodFill(image, None, (j, i), count)
+                    count += 1
+
+        image[image == 1] = 0
+        image[image > 1] = 255
+
+        return image
 
     def run(self):
         i, j = None, None

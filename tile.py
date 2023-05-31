@@ -39,6 +39,8 @@ class Tile:
 
         if self.is_land:
             self.weight = 1000
+        elif self.adjacency.sum() >= 9:
+            self.weight = 100
         else:
             self.weight = 1
 
