@@ -32,6 +32,7 @@ class Option:
             raise ValueError('Option not collapsed')
 
     def collapse(self, idx=None):
+        assert not self.collapsed
         self.collapsed = True
         self.entropy = 0
         if idx is None:

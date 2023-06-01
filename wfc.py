@@ -6,10 +6,14 @@ from option import Option
 from collections import deque
 from copy import deepcopy
 import hashlib
+import multiprocessing as mp
+from worker import Worker
+from scipy.spatial.distance import cdist
+from time import time
 
 
 class WaveFunctionCollapse:
-    def __init__(self, h, w, image_size):
+    def __init__(self, h, w, image_size, num_workers=mp.cpu_count()):
         self.h = h
         self.w = w
         self.image_size = image_size
@@ -17,6 +21,7 @@ class WaveFunctionCollapse:
         self.tiles = []
         self.grid = np.zeros((h, w), dtype=object)
         self.backtracking_stack = deque(maxlen=h * w * 10)
+        self.num_workers = num_workers
 
     def load_images(self, load_path, resize=True):
         _, _, files = next(os.walk(load_path))
@@ -88,7 +93,7 @@ class WaveFunctionCollapse:
                         min_tiles = [(i, j)]
                     elif self.grid[i, j].entropy == min_entropy:
                         min_tiles.append((i, j))
-        return np.array(min_tiles), min_entropy
+        return min_tiles, min_entropy
 
     def propagate_constraints(self, i, j):
         assert self.grid[i, j].collapsed
@@ -138,7 +143,8 @@ class WaveFunctionCollapse:
 
     def create_image(self, grid_lines=False):
         if grid_lines:
-            image = np.zeros((self.h * self.image_size + self.h - 1, self.w * self.image_size + self.w - 1), dtype=np.uint8) + 70
+            image = np.zeros((self.h * self.image_size + self.h - 1, self.w * self.image_size + self.w - 1),
+                             dtype=np.uint8) + 70
         else:
             image = np.zeros((self.h * self.image_size, self.w * self.image_size), dtype=np.uint8) + 70
 
@@ -146,14 +152,18 @@ class WaveFunctionCollapse:
             for j in range(self.w):
                 if self.grid[i, j].collapsed:
                     if grid_lines:
-                        image[i * self.image_size + i:(i + 1) * self.image_size + i, j * self.image_size + j:(j + 1) * self.image_size + j] = self.grid[i, j].tile.img
+                        image[i * self.image_size + i:(i + 1) * self.image_size + i,
+                        j * self.image_size + j:(j + 1) * self.image_size + j] = self.grid[i, j].tile.img
                     else:
-                        image[i * self.image_size:(i + 1) * self.image_size, j * self.image_size:(j + 1) * self.image_size] = self.grid[i, j].tile.img
+                        image[i * self.image_size:(i + 1) * self.image_size,
+                        j * self.image_size:(j + 1) * self.image_size] = self.grid[i, j].tile.img
                 else:
                     if grid_lines:
-                        image[i * self.image_size + i:(i + 1) * self.image_size + i, j * self.image_size + j:(j + 1) * self.image_size + j] = 125
+                        image[i * self.image_size + i:(i + 1) * self.image_size + i,
+                        j * self.image_size + j:(j + 1) * self.image_size + j] = 125
                     else:
-                        image[i * self.image_size:(i + 1) * self.image_size, j * self.image_size:(j + 1) * self.image_size] = 125
+                        image[i * self.image_size:(i + 1) * self.image_size,
+                        j * self.image_size:(j + 1) * self.image_size] = 125
         return image
 
     def display_grid(self, image=None):
@@ -183,27 +193,68 @@ class WaveFunctionCollapse:
         return image
 
     def run(self):
-        i, j = None, None
+        work_queue = mp.JoinableQueue()
+        result_queue = mp.Queue()
+
+        # create workers
+        workers = []
+        for i in range(self.num_workers):
+            worker = Worker(self.h, self.w, work_queue, result_queue)
+            worker.daemon = True
+            worker.start()
+            workers.append(worker)
+
         while True:
+            start = time()
             min_tiles, min_entropy = self.get_min_entropy_tiles()
+            print("get_min_entropy", time() - start)
             if min_tiles is None:
-                # backtracking
+                # when backtracking, only one worker allowed to do stuff
                 new_grid, i, j = self.backtracking_stack.pop()
                 self.grid = new_grid
+                work_queue.put((deepcopy(self.grid), i, j))
+                work_queue.join()
+                self.grid, _, _, _ = result_queue.get()  # discard changes
             elif len(min_tiles) == 0:
                 print('No tiles left to collapse')
                 break
             else:
+                # TODO: try: pick the tiles the furthest apart to send to workers. use cdist alternative
                 np.random.shuffle(min_tiles)
-                for (i, j) in min_tiles[:-1]:
+                start = time()
+                jobs_sent = 0
+                for x in range(self.num_workers):
+                    if x >= len(min_tiles):
+                        break
+                    work_queue.put((deepcopy(self.grid), min_tiles[x][0], min_tiles[x][1]))
+                    jobs_sent += 1
+
+                work_queue.join()
+                print("sending jobs", time() - start)
+                start = time()
+                discarded_changes = []
+                first_grid, first_changes, _, _ = result_queue.get()
+                for x in range(1, jobs_sent):
+                    new_grid, changes, w_i, w_j = result_queue.get()
+                    if np.any(np.bitwise_and(first_changes, changes)):
+                        discarded_changes.append((w_i, w_j))
+                    else:
+                        first_grid[changes] = new_grid[changes]
+                        first_changes = np.bitwise_or(first_changes, changes)
+                print("merging changes", time() - start)
+                self.grid = first_grid
+
+                start = time()
+                for (i, j) in min_tiles[jobs_sent:] + discarded_changes:
                     self.backtracking_stack.append((deepcopy(self.grid), i, j))
-
-                i, j = min_tiles[-1]
-
-            # collapse a tile
-            self.grid[i, j].collapse()
-            # propagate constraints
-            self.propagate_constraints(i, j)
+                print("updating stack", time() - start)
 
             # display progress
+            start = time()
             self.display_grid()
+            print("displaying", time() - start)
+
+        # stop workers
+        for i in range(self.num_workers):
+            work_queue.put((None, None, None))
+

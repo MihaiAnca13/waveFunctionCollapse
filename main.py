@@ -4,8 +4,8 @@ import itertools
 from wfc import WaveFunctionCollapse
 from option import Option
 
-GRID_W = 15
-GRID_H = 15
+GRID_W = 45
+GRID_H = 45
 TILES_FROM_EDGE = 1
 LAND_SIZE = 3
 IMG_SIZE = 720 // GRID_W
@@ -14,7 +14,7 @@ assert GRID_H // 2 - TILES_FROM_EDGE > LAND_SIZE
 
 
 if __name__ == '__main__':
-    wfc = WaveFunctionCollapse(GRID_H, GRID_W, IMG_SIZE)
+    wfc = WaveFunctionCollapse(GRID_H, GRID_W, IMG_SIZE, num_workers=4)
     wfc.load_images('new_set/')
     wfc.create_tiles()
     print(f"Working with {len(wfc.tiles)} tiles")
