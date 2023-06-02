@@ -4,12 +4,9 @@ import numpy as np
 import os
 from option import Option
 from collections import deque
-import hashlib
 import multiprocessing as mp
 from worker import Worker
-from time import time
 from copy import deepcopy
-from scipy.spatial.distance import cdist
 
 
 class WaveFunctionCollapse:
@@ -71,12 +68,6 @@ class WaveFunctionCollapse:
         for i in range(self.h):
             for j in range(self.w):
                 self.grid[i, j] = Option(self.tiles)
-
-    def hash_grid(self, grid=None):
-        if grid is None:
-            grid = self.grid
-        arr_str = str(grid.flatten()).encode('utf-8')
-        return hashlib.sha256(arr_str).hexdigest()
 
     def get_min_entropy_tiles(self):
         min_entropy = len(self.tiles) + 1
