@@ -1,7 +1,7 @@
 # Simple Wave Function Collapse for island generation
 
 ## TODO
-- parallelize the generation
+Update the README with how each part actually works
 
 ## Observation from looking at this [island](https://i.redd.it/uw9w6jiwjx231.png)
 

@@ -4,12 +4,12 @@ import numpy as np
 import os
 from option import Option
 from collections import deque
-from copy import deepcopy
 import hashlib
 import multiprocessing as mp
 from worker import Worker
-from scipy.spatial.distance import cdist
 from time import time
+from copy import deepcopy
+from scipy.spatial.distance import cdist
 
 
 class WaveFunctionCollapse:
@@ -79,8 +79,9 @@ class WaveFunctionCollapse:
         return hashlib.sha256(arr_str).hexdigest()
 
     def get_min_entropy_tiles(self):
-        min_entropy = 1000
+        min_entropy = len(self.tiles) + 1
         min_tiles = []
+        entropy = np.zeros((self.h, self.w)) + len(self.tiles) + 1
         for i in range(self.h):
             for j in range(self.w):
                 if not self.grid[i, j].collapsed:
@@ -88,11 +89,27 @@ class WaveFunctionCollapse:
                         # backtrack
                         print(f"Backtracking with {len(self.backtracking_stack)} items on stack")
                         return None, None
+                    entropy[i, j] = self.grid[i, j].entropy
                     if self.grid[i, j].entropy < min_entropy:
                         min_entropy = self.grid[i, j].entropy
                         min_tiles = [(i, j)]
                     elif self.grid[i, j].entropy == min_entropy:
                         min_tiles.append((i, j))
+
+        if len(min_tiles) < self.num_workers:
+            jobs_required = self.num_workers - len(min_tiles)
+            # remove the already tiles considered
+            for i, j in min_tiles:
+                entropy[i, j] = len(self.tiles) + 1
+            flat_entropy = entropy.flatten()
+            topk = np.argpartition(flat_entropy, jobs_required)[:jobs_required]
+            for i in topk:
+                x = i // self.w
+                y = i % self.w
+                if self.grid[x, y].collapsed:
+                    continue
+                min_tiles.append((x, y))
+
         return min_tiles, min_entropy
 
     def propagate_constraints(self, i, j):
@@ -172,8 +189,10 @@ class WaveFunctionCollapse:
         cv2.imshow('grid', image)
         cv2.waitKey(1)
 
-    def remove_holes(self, radius_in_tiles):
-        image = self.create_image()
+    def remove_holes(self, image=None):
+        if image is None:
+            image = self.create_image()
+        # remove imperfections in the image
         image = np.where(image > 200, 255, 0).astype(np.uint8)
 
         image_w = image.shape[1]
@@ -205,33 +224,30 @@ class WaveFunctionCollapse:
             workers.append(worker)
 
         while True:
-            start = time()
             min_tiles, min_entropy = self.get_min_entropy_tiles()
-            print("get_min_entropy", time() - start)
             if min_tiles is None:
                 # when backtracking, only one worker allowed to do stuff
+                if len(self.backtracking_stack) == 0:
+                    print('Backtracking stack empty and can\'t collapse any more tiles')
+                    break
                 new_grid, i, j = self.backtracking_stack.pop()
                 self.grid = new_grid
-                work_queue.put((deepcopy(self.grid), i, j))
+                work_queue.put((self.grid, i, j))
                 work_queue.join()
                 self.grid, _, _, _ = result_queue.get()  # discard changes
             elif len(min_tiles) == 0:
                 print('No tiles left to collapse')
                 break
             else:
-                # TODO: try: pick the tiles the furthest apart to send to workers. use cdist alternative
                 np.random.shuffle(min_tiles)
-                start = time()
                 jobs_sent = 0
                 for x in range(self.num_workers):
                     if x >= len(min_tiles):
                         break
-                    work_queue.put((deepcopy(self.grid), min_tiles[x][0], min_tiles[x][1]))
+                    work_queue.put((self.grid, min_tiles[x][0], min_tiles[x][1]))
                     jobs_sent += 1
 
                 work_queue.join()
-                print("sending jobs", time() - start)
-                start = time()
                 discarded_changes = []
                 first_grid, first_changes, _, _ = result_queue.get()
                 for x in range(1, jobs_sent):
@@ -241,20 +257,15 @@ class WaveFunctionCollapse:
                     else:
                         first_grid[changes] = new_grid[changes]
                         first_changes = np.bitwise_or(first_changes, changes)
-                print("merging changes", time() - start)
-                self.grid = first_grid
 
-                start = time()
                 for (i, j) in min_tiles[jobs_sent:] + discarded_changes:
                     self.backtracking_stack.append((deepcopy(self.grid), i, j))
-                print("updating stack", time() - start)
+
+                self.grid = first_grid
 
             # display progress
-            start = time()
             self.display_grid()
-            print("displaying", time() - start)
 
         # stop workers
         for i in range(self.num_workers):
             work_queue.put((None, None, None))
-

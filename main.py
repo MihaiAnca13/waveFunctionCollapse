@@ -4,8 +4,8 @@ import itertools
 from wfc import WaveFunctionCollapse
 from option import Option
 
-GRID_W = 45
-GRID_H = 45
+GRID_W = 25
+GRID_H = 25
 TILES_FROM_EDGE = 1
 LAND_SIZE = 3
 IMG_SIZE = 720 // GRID_W
@@ -42,6 +42,7 @@ if __name__ == '__main__':
     wfc.display_grid()
     cv2.waitKey(0)
 
-    image = wfc.remove_holes(GRID_H // 2 - TILES_FROM_EDGE)
+    image = wfc.remove_holes()
     wfc.display_grid(image)
+    cv2.imwrite("output.png", image)
     cv2.waitKey(0)

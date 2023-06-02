@@ -1,6 +1,5 @@
 import multiprocessing
 import numpy as np
-from copy import deepcopy
 
 
 class Worker(multiprocessing.Process):
@@ -11,7 +10,7 @@ class Worker(multiprocessing.Process):
         self.queue = queue
         self.result_queue = result_queue
         self.grid = None
-        self.changes = None
+        self.changes = np.zeros((self.h, self.w), dtype=np.bool)
 
     def run(self):
         while True:
@@ -20,9 +19,17 @@ class Worker(multiprocessing.Process):
                 self.queue.task_done()
                 break
             self.grid = grid
-            self.changes = np.zeros((self.h, self.w), dtype=np.bool)
-            self.grid[i, j].collapse()
-            self.propagate_constraints(i, j)
+            self.changes[:] = 0
+            try:
+                self.grid[i, j].collapse()
+                self.propagate_constraints(i, j)
+            except Exception as e:
+                print("Exception in worker: ", e)
+                print("i, j: ", i, j)
+                print("grid[i, j].tiles: ", len(grid[i, j].tiles))
+                print("grid[i, j].collapsed: ", grid[i, j].collapsed)
+                # force the grid to be invalid
+                self.changes[:] = True
             self.queue.task_done()
             self.result_queue.put((self.grid, self.changes, i, j))
 
