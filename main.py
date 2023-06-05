@@ -2,8 +2,8 @@ import cv2
 from wfc import WaveFunctionCollapse
 from option import Option
 
-GRID_W = 13
-GRID_H = 13
+GRID_W = 15
+GRID_H = 15
 TILES_FROM_EDGE = 1
 LAND_SIZE = 3
 IMG_SIZE = 720 // GRID_W
@@ -11,7 +11,7 @@ IMG_SIZE = 720 // GRID_W
 assert GRID_H // 2 - TILES_FROM_EDGE > LAND_SIZE
 
 if __name__ == '__main__':
-    wfc = WaveFunctionCollapse(GRID_H, GRID_W, IMG_SIZE, num_workers=1)
+    wfc = WaveFunctionCollapse(GRID_H, GRID_W, IMG_SIZE, num_workers=4)
     wfc.load_images('new_set/')
     wfc.create_tiles()
     print(f"Working with {len(wfc.tiles)} tiles")
@@ -40,6 +40,7 @@ if __name__ == '__main__':
     cv2.waitKey(0)
 
     image = wfc.remove_holes()
+    image = wfc.blur_image(image)
     wfc.display_grid(image)
     cv2.imwrite("output.png", image)
     cv2.waitKey(0)

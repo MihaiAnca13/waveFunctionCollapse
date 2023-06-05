@@ -202,6 +202,19 @@ class WaveFunctionCollapse:
 
         return image
 
+    def blur_image(self, image=None):
+        if image is None:
+            image = self.create_image()
+        kernel_size = image.shape[0] // 20
+        print(kernel_size)
+        # check kernel size is odd
+        kernel_size = kernel_size + 1 if kernel_size % 2 == 0 else kernel_size
+        kernel = np.ones((kernel_size, kernel_size), np.float32) / (kernel_size ** 2)
+        for _ in range(3):
+            image = cv2.filter2D(image, -1, kernel)
+        image = cv2.GaussianBlur(image, (0, 0), sigmaX=3, sigmaY=3, borderType=cv2.BORDER_DEFAULT)
+        return image
+
     def run(self):
         work_queue = mp.JoinableQueue()
         result_queue = mp.Queue()
