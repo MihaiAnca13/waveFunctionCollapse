@@ -96,16 +96,3 @@ class Tile:
     def compatible_W(self, other):
         return np.equal(self.adjacency[9:], other.adjacency[5:2:-1]).all()
 
-
-if __name__ == '__main__':
-    t = Tile(cv2.imread('new_images/14.png', 0))
-    t.show_tile()
-    t.rotate_90().show_tile('rotated 1')
-    t.rotate_90().rotate_90().show_tile('rotated 2')
-    t.rotate_90().rotate_90().rotate_90().show_tile('rotated 3')
-    t.flip_vertical().show_tile('flipped V')
-    t.flip_vertical().rotate_90().show_tile('flipped V 1')
-    t.flip_vertical().rotate_90().rotate_90().show_tile('flipped V 2')
-    t.flip_vertical().rotate_90().rotate_90().rotate_90().show_tile('flipped V 3')
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
